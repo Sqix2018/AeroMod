@@ -93,6 +93,21 @@ def ar(members):
     return out.getvalue()
 
 
+# Frida ships the gadget signed with its own Apple certificate. Dopamine only
+# loads ad-hoc (ldid) signed tweaks - the cert-signed gadget failed dlopen with
+# "code signature invalid". Re-sign it on the device at install time.
+POSTINST = (
+    '#!/bin/sh\n'
+    'DYLIB=/var/jb/Library/MobileSubstrate/DynamicLibraries/AeroMod.dylib\n'
+    'LDID=/var/jb/usr/bin/ldid\n'
+    '[ -x "$LDID" ] || LDID="$(command -v ldid)"\n'
+    'if [ -z "$LDID" ]; then echo "AeroMod: ldid not found"; exit 1; fi\n'
+    '"$LDID" -S "$DYLIB" || { echo "AeroMod: ldid -S failed"; exit 1; }\n'
+    'echo "AeroMod: gadget re-signed (ad-hoc)"\n'
+    'exit 0\n'
+).encode()
+
+
 def control_text(version, size_kb):
     return (
         f'Package: {PACKAGE_ID}\n'
@@ -105,7 +120,7 @@ def control_text(version, size_kb):
         'Maintainer: Sqix2018\n'
         'Author: Sqix2018\n'
         'Section: Tweaks\n'
-        'Depends: mobilesubstrate\n'
+        'Depends: mobilesubstrate, ldid\n'
         f'Installed-Size: {size_kb}\n'
         'Homepage: https://github.com/Sqix2018/AeroMod\n'
     )
@@ -129,7 +144,8 @@ def build_deb(version):
     data = tar_gz([('', None, 0o755)] + [(d, None, 0o755) for d in dirs] + files)
     size_kb = sum(len(f[1]) for f in files) // 1024 + 1
     control = tar_gz([('', None, 0o755),
-                      ('control', control_text(version, size_kb).encode(), 0o644)])
+                      ('control', control_text(version, size_kb).encode(), 0o644),
+                      ('postinst', POSTINST, 0o755)])
     deb = ar([('debian-binary', b'2.0\n'), ('control.tar.gz', control), ('data.tar.gz', data)])
     out = os.path.join(ROOT, 'packaging', 'out')
     os.makedirs(out, exist_ok=True)
