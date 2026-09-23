@@ -22,6 +22,105 @@
     def(m, m.exports, function (p) { return __require(__resolve(id, p)); });
     return m.exports;
   }
+  __defs["boot"] = function (module, exports, require) {
+// First thing the bundle runs.
+//
+// From a PC, Frida attaches to an Aerox that is already on screen. From the
+// Sileo package, Frida Gadget runs this file while the app is still being
+// loaded - before UIApplicationMain, before there is a window - and there is
+// no console to see errors in. So:
+//   - boot.log (Documents/aerox-tas/boot.log) is written with plain libc
+//     calls, which work before the ObjC bridge and before log.js;
+//   - AeroMod starts once UIApplication exists, and any error on the way is
+//     written there with its stack.
+
+let fileLog = null;
+
+function bootLog(message) {
+    const line = `${new Date().toISOString()}  ${message}`;
+    try { console.log(`[aerox-tas] boot: ${message}`); } catch (err) { /* */ }
+    try {
+        if (fileLog === null) {
+            const find = (name) => Module.getGlobalExportByName(name);
+            const getenv = new NativeFunction(find('getenv'), 'pointer', ['pointer']);
+            const mkdir = new NativeFunction(find('mkdir'), 'int', ['pointer', 'int']);
+            const fopen = new NativeFunction(find('fopen'), 'pointer', ['pointer', 'pointer']);
+            const fputs = new NativeFunction(find('fputs'), 'int', ['pointer', 'pointer']);
+            const fclose = new NativeFunction(find('fclose'), 'int', ['pointer']);
+            const home = getenv(Memory.allocUtf8String('HOME'));
+            if (home.isNull()) return;
+            const dir = `${home.readUtf8String()}/Documents/aerox-tas`;
+            mkdir(Memory.allocUtf8String(dir), 0o755);
+            const path = Memory.allocUtf8String(`${dir}/boot.log`);
+            const mode = Memory.allocUtf8String('a');
+            fileLog = (text) => {
+                const f = fopen(path, mode);
+                if (f.isNull()) return;
+                fputs(Memory.allocUtf8String(`${text}\n`), f);
+                fclose(f);
+            };
+        }
+        fileLog(line);
+    } catch (err) { /* nowhere left to report */ }
+}
+
+function fail(stage, err) {
+    bootLog(`${stage} FAILED: ${err && err.message ? err.message : err}`);
+    if (err && err.stack) bootLog(String(err.stack));
+}
+
+let hadObjC = false;
+try { hadObjC = typeof ObjC !== 'undefined' && ObjC !== null; } catch (err) { hadObjC = false; }
+bootLog(`start (${hadObjC ? 'ObjC from Frida' : 'vendored ObjC bridge'}, Frida ${Frida.version})`);
+
+try {
+    require('./core/bridges');
+} catch (err) {
+    fail('ObjC bridge', err);
+}
+
+function appReady() {
+    try {
+        if (!ObjC.available) return false;
+        const app = ObjC.classes.UIApplication;
+        return app !== undefined && app.sharedApplication() !== null;
+    } catch (err) {
+        return false;
+    }
+}
+
+function launch() {
+    bootLog('app is up - starting AeroMod');
+    try {
+        require('./index');
+        bootLog('AeroMod loaded');
+    } catch (err) {
+        fail('AeroMod start', err);
+    }
+}
+
+if (appReady()) {
+    launch();
+} else {
+    bootLog('waiting for the app to finish launching');
+    let tries = 0;
+    const timer = setInterval(function () {
+        tries += 1;
+        if (appReady()) {
+            clearInterval(timer);
+            launch();
+        } else if (tries > 240) {
+            clearInterval(timer);
+            bootLog(`gave up: no UIApplication after 60s (ObjC.available=${(() => {
+                try { return ObjC.available; } catch (err) { return 'error'; }
+            })()})`);
+        }
+    }, 250);
+}
+
+module.exports = { bootLog };
+
+  };
   __defs["core/bridges"] = function (module, exports, require) {
 // Frida 17 no longer builds the ObjC bridge into the runtime. The frida CLI
 // adds one to scripts it loads; Frida Gadget running this file from disk (the
@@ -4638,7 +4737,7 @@ module.exports = {
   __defs["index"] = function (module, exports, require) {
 // aerox-tas entry point.
 
-require('./core/bridges'); // must run before anything uses ObjC
+require('./core/bridges'); // must run before anything uses ObjC (boot.js loads it first)
 const mem = require('./core/mem');
 const log = require('./core/log');
 const storage = require('./core/storage');
@@ -4677,7 +4776,14 @@ function banner() {
     }
 }
 
+let hooksInstalled = false;
+
 function start() {
+    if (hooksInstalled) {
+        buildUi();
+        return;
+    }
+    hooksInstalled = true;
     banner();
     log.installCrashHandler();
 
@@ -4701,12 +4807,37 @@ function start() {
     achievements.install();
     skins.install();
 
+    buildUi();
+
+    // UI refresh is decoupled from the game loop so it keeps updating while paused.
+    setInterval(function () {
+        if (!power.state.enabled) return;
+        ObjC.schedule(ObjC.mainQueue, function () {
+            try {
+                hud.refresh();
+                timer.refresh();
+                dpad.refresh();
+                panel.refresh();
+                minimap.refresh();
+                // A non-finite camera yaw survives a level change and leaves the
+                // menu rendering white, so sweep for it rather than wait for a
+                // report that the game "went blank".
+                ball.scrubNaN();
+            } catch (err) { /* view torn down */ }
+        });
+    }, 66);
+}
+
+// The window can come later than the hooks (Frida Gadget starts us while
+// the app is still launching). Retry only this part - calling start() again
+// used to install every hook a second time.
+function buildUi() {
     ObjC.schedule(ObjC.mainQueue, function () {
         try {
             const window = widgets.keyWindow();
             if (window === null) {
                 console.log('[aerox-tas] no key window yet; retrying in 1s');
-                setTimeout(() => ObjC.schedule(ObjC.mainQueue, start), 1000);
+                setTimeout(buildUi, 1000);
                 return;
             }
             power.build(window, {
@@ -4731,34 +4862,19 @@ function start() {
                 dpad.brakeBox(), timer.ui.timer, timer.ui.splitBox, timer.ui.mark]
                 .forEach(v => power.register(v));
             console.log('[aerox-tas] ready - tap the AeroMod pill to open the panel');
+            try { require('./boot').bootLog('ready - AeroMod pill is up'); } catch (e) { /* */ }
         } catch (err) {
             console.log(`[aerox-tas] UI build failed: ${err.message}\n${err.stack}`);
+            try { require('./boot').bootLog(`UI build failed: ${err.message}`); } catch (e) { /* */ }
         }
     });
-
-    // UI refresh is decoupled from the game loop so it keeps updating while paused.
-    setInterval(function () {
-        if (!power.state.enabled) return;
-        ObjC.schedule(ObjC.mainQueue, function () {
-            try {
-                hud.refresh();
-                timer.refresh();
-                dpad.refresh();
-                panel.refresh();
-                minimap.refresh();
-                // A non-finite camera yaw survives a level change and leaves the
-                // menu rendering white, so sweep for it rather than wait for a
-                // report that the game "went blank".
-                ball.scrubNaN();
-            } catch (err) { /* view torn down */ }
-        });
-    }, 66);
 }
 
 if (ObjC.available) {
     setTimeout(start, 800);
 } else {
     console.log('[aerox-tas] ObjC runtime unavailable');
+    try { require('./boot').bootLog('ObjC runtime unavailable - not starting'); } catch (e) { /* */ }
 }
 
 // Console API for scripted work.
@@ -20214,5 +20330,5 @@ function compileModule() {
 module.exports = { get };
 
   };
-  __require("index");
+  __require("boot");
 })();

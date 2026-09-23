@@ -34,6 +34,8 @@ For rootless jailbreaks: Dopamine, or palera1n in rootless mode.
 2. Install **AeroMod**.
 3. Open Aerox. AeroMod starts on its own; tap the **AeroMod** pill.
 
+If no pill appears after a few seconds, open Aerox's `Documents/aerox-tas/boot.log` in Filza. It records each startup step (bridge, waiting for the app, AeroMod start, `ready`) and the error if one fails. `tools/tweak_diag.js` (run from a PC with Frida) shows whether the tweak loaded at all.
+
 You don't need Frida installed on the device, and no PC is involved. The package carries its own Frida.
 
 **How it works.** Frida also comes as **Frida Gadget**, a library that loads inside one app and runs a script from disk. The package installs:

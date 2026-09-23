@@ -1,6 +1,6 @@
 // aerox-tas entry point.
 
-require('./core/bridges'); // must run before anything uses ObjC
+require('./core/bridges'); // must run before anything uses ObjC (boot.js loads it first)
 const mem = require('./core/mem');
 const log = require('./core/log');
 const storage = require('./core/storage');
@@ -39,7 +39,14 @@ function banner() {
     }
 }
 
+let hooksInstalled = false;
+
 function start() {
+    if (hooksInstalled) {
+        buildUi();
+        return;
+    }
+    hooksInstalled = true;
     banner();
     log.installCrashHandler();
 
@@ -63,12 +70,37 @@ function start() {
     achievements.install();
     skins.install();
 
+    buildUi();
+
+    // UI refresh is decoupled from the game loop so it keeps updating while paused.
+    setInterval(function () {
+        if (!power.state.enabled) return;
+        ObjC.schedule(ObjC.mainQueue, function () {
+            try {
+                hud.refresh();
+                timer.refresh();
+                dpad.refresh();
+                panel.refresh();
+                minimap.refresh();
+                // A non-finite camera yaw survives a level change and leaves the
+                // menu rendering white, so sweep for it rather than wait for a
+                // report that the game "went blank".
+                ball.scrubNaN();
+            } catch (err) { /* view torn down */ }
+        });
+    }, 66);
+}
+
+// The window can come later than the hooks (Frida Gadget starts us while
+// the app is still launching). Retry only this part - calling start() again
+// used to install every hook a second time.
+function buildUi() {
     ObjC.schedule(ObjC.mainQueue, function () {
         try {
             const window = widgets.keyWindow();
             if (window === null) {
                 console.log('[aerox-tas] no key window yet; retrying in 1s');
-                setTimeout(() => ObjC.schedule(ObjC.mainQueue, start), 1000);
+                setTimeout(buildUi, 1000);
                 return;
             }
             power.build(window, {
@@ -93,34 +125,19 @@ function start() {
                 dpad.brakeBox(), timer.ui.timer, timer.ui.splitBox, timer.ui.mark]
                 .forEach(v => power.register(v));
             console.log('[aerox-tas] ready - tap the AeroMod pill to open the panel');
+            try { require('./boot').bootLog('ready - AeroMod pill is up'); } catch (e) { /* */ }
         } catch (err) {
             console.log(`[aerox-tas] UI build failed: ${err.message}\n${err.stack}`);
+            try { require('./boot').bootLog(`UI build failed: ${err.message}`); } catch (e) { /* */ }
         }
     });
-
-    // UI refresh is decoupled from the game loop so it keeps updating while paused.
-    setInterval(function () {
-        if (!power.state.enabled) return;
-        ObjC.schedule(ObjC.mainQueue, function () {
-            try {
-                hud.refresh();
-                timer.refresh();
-                dpad.refresh();
-                panel.refresh();
-                minimap.refresh();
-                // A non-finite camera yaw survives a level change and leaves the
-                // menu rendering white, so sweep for it rather than wait for a
-                // report that the game "went blank".
-                ball.scrubNaN();
-            } catch (err) { /* view torn down */ }
-        });
-    }, 66);
 }
 
 if (ObjC.available) {
     setTimeout(start, 800);
 } else {
     console.log('[aerox-tas] ObjC runtime unavailable');
+    try { require('./boot').bootLog('ObjC runtime unavailable - not starting'); } catch (e) { /* */ }
 }
 
 // Console API for scripted work.

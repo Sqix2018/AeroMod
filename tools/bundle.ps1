@@ -71,7 +71,7 @@ Get-ChildItem -Path $srcDir -Recurse -Filter *.js | Sort-Object FullName | ForEa
     [void]$sb.AppendLine('  };')
 }
 
-[void]$sb.AppendLine('  __require("index");')
+[void]$sb.AppendLine('  __require("boot");')
 [void]$sb.AppendLine('})();')
 
 $utf8 = New-Object System.Text.UTF8Encoding $false
