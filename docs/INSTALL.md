@@ -7,7 +7,7 @@ You need **Aerox 1.9.5**: AeroMod reads that version's memory layout and won't w
 | Setup | Needs | Status |
 |---|---|---|
 | A. Jailbroken + PC | Jailbreak, USB cable | Works today |
-| B. Jailbroken, no PC | Rootless jailbreak (Dopamine), AeroMod from Sileo | Built, testing on iOS 15.8 |
+| B. Jailbroken, no PC | Rootless jailbreak (Dopamine), AeroMod from Sileo | Works (tested: Dopamine, iOS 15.8, iPad Air 2) |
 | C. Not jailbroken | Your own decrypted Aerox IPA, `tools/patch_ipa.py`, Sideloadly, a JIT enabler | Experimental, untested |
 
 ---
@@ -50,6 +50,7 @@ You don't need Frida installed on the device, and no PC is involved. The package
 The jailbreak's tweak loader (ElleKit on Dopamine) injects the gadget only into Aerox. The gadget then runs `aerox-tas.js`. To try a new build without repackaging, replace that file (for example with Filza) and relaunch Aerox.
 
 - **Don't combine with setup A.** With the package installed, don't also inject from a PC, because two copies would fight over the same hooks. Uninstall the package, or disable it in your tweak manager, to use setup A.
+- **Signing.** Frida publishes the gadget signed with its own certificate, which Dopamine refuses (`code signature invalid`). The package therefore depends on `ldid` and re-signs the gadget ad-hoc when it installs.
 - **Rootful jailbreaks** (checkra1n, unc0ver) would need a second build with paths without `/var/jb` and architecture `iphoneos-arm`. That build doesn't exist yet.
 
 **Maintainers:** `python tools/package.py` builds the `.deb` into `packaging/out/` and the repo files into `repo/`, which are published as the `Sqix2018/sqix2018.github.io` repo (served at `https://sqix2018.github.io/`).
