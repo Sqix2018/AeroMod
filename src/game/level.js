@@ -427,7 +427,32 @@ function install() {
     frame.onAfterFrame(afterFrameSettle, 'level');
 }
 
+// Level-select progress is one number: DAT LastLevelReached, saved to
+// NSUserDefaults and iCloud under "LastLevelReached" (the game only ever
+// raises it from iCloud, so this sticks). A sideloaded copy starts at level 1,
+// and TAS finishes never save a time, so without this every level would have
+// to be beaten with AeroMod closed first.
+function unlockAllLevels() {
+    let cap = 0;
+    try { cap = mem.global('levelCount').readS32(); } catch (err) { cap = 0; }
+    if (!(cap >= 1 && cap <= 99)) cap = 40;
+    const cell = mem.global('lastLevelReached');
+    const was = cell.readS32();
+    if (was < cap) cell.writeS32(cap);
+    const now = Math.max(was, cap);
+    const key = ObjC.classes.NSString.stringWithString_('LastLevelReached');
+    const defaults = ObjC.classes.NSUserDefaults.standardUserDefaults();
+    defaults.setInteger_forKey_(now, key);
+    defaults.synchronize();
+    try {
+        const cloud = ObjC.classes.NSUbiquitousKeyValueStore.defaultStore();
+        if (cloud !== null) cloud.setObject_forKey_(ObjC.classes.NSNumber.numberWithInt_(now), key);
+    } catch (err) { /* no iCloud on sideloaded builds */ }
+    return { was, now };
+}
+
 module.exports = {
+    unlockAllLevels,
     noteScene, loadedLevel,
     install, phase,
     inLevel, introPlaying, messageUp, readyPrompt, inPlay, started, complete, inMainMenu,

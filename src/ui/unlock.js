@@ -8,7 +8,7 @@ const ui = { card: null, timer: null };
 function flash(def) {
     ObjC.schedule(ObjC.mainQueue, function () {
         hide();
-        const window = w.keyWindow();
+        const window = w.uiRoot();
         if (window === null || def === null) return;
 
         const bounds = window.bounds();

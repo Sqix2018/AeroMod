@@ -155,6 +155,8 @@ TAS achievements that unlock skins. Locked rows show only their title. **RESET A
 | Coordinate readout | Small live X/Y/Z box. |
 | Alt brake | Brake control for the Alternate tilt scheme (keyboard **B**). |
 | RESTART LEVEL | Reloads the current level. |
+| UNLOCK ALL LEVELS | Opens every level in level select. For sideloaded copies, which start at level 1 and never save TAS finishes. Can't be relocked. |
+| UI size (50–100 %) | Scales the whole AeroMod UI, text included. Phones default to 70 %. |
 | Rewind snaps | OFF clears and stops the undo buffer. |
 | Warp watch | OFF stops the death watcher, warp map and AUTO VOID. |
 | Skin apply | OFF restores the stock ball and refuses skins. |

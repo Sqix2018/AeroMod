@@ -29,7 +29,7 @@ With the panel closed (**SETTINGS → CLOSE AEROMOD**) the game is back to stock
 
 - **Rootless jailbreak (Dopamine):** add `https://sqix2018.github.io/` in Sileo and install **AeroMod**. No PC needed. Tested on Dopamine, iOS 15.8.
 - **Jailbroken + PC:** the quick start below.
-- **Not jailbroken:** patch your own decrypted IPA with `tools/patch_ipa.py`, install it with Sideloadly and launch it through a JIT enabler (untested).
+- **Not jailbroken:** patch your own decrypted IPA with `tools/patch_ipa.py`, install it with Sideloadly and launch it through StikDebug. Tested on iPhone, iOS 18.0.1.
 
 Details for all three are in [docs/INSTALL.md](docs/INSTALL.md).
 

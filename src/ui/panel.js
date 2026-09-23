@@ -166,6 +166,14 @@ function syncPauseButtons() {
     syncShiftButtons();
 }
 
+function paintScaleButtons() {
+    const cur = w.uiScale();
+    (ui.scaleButtons || []).forEach((btn, i) => {
+        const on = Math.abs(w.SCALES[i] - cur) < 0.001;
+        btn.setBackgroundColor_(on ? theme.accentDim : theme.surfaceAlt);
+    });
+}
+
 function syncShiftButtons() {
     if (ui.macroShift !== null) {
         const on = macro.shifting();
@@ -1163,7 +1171,46 @@ function buildSettingsTab(width, height) {
         setStatus(level.inLevel() ? 'restarting level' : 'no level loaded');
         if (level.inLevel()) level.restart();
     }, { size: 14 }));
+    y += 46;
+
+    // Fresh (sideloaded) copies start at level 1, and TAS finishes never save.
+    inner.addSubview_(w.button([[12, y], [width - 24, 40]], 'UNLOCK ALL LEVELS', function () {
+        confirm('Unlock every level?',
+            'Opens every level in level select for this copy of the game. '
+            + 'This is saved like normal progress and cannot be relocked.',
+            function () {
+                try {
+                    const r = level.unlockAllLevels();
+                    setStatus(r.now > r.was
+                        ? `levels 1-${r.now} unlocked (was ${r.was}) - reopen level select`
+                        : `all ${r.now} levels were already unlocked`);
+                } catch (err) {
+                    setStatus(`unlock failed: ${err.message}`);
+                }
+            }, { yesLabel: 'Unlock', lines: 3 });
+    }, { size: 14 }));
     y += 50;
+
+    // Uniform scale for the whole AeroMod UI (text included). 100% was laid
+    // out for a large screen; phones default to 70%.
+    inner.addSubview_(w.label([[12, y], [width - 24, 18]], 'UI size', {
+        size: 13, color: theme.accent,
+    }));
+    y += 22;
+    const sizes = w.SCALES;
+    const sw = (width - 24 - (sizes.length - 1) * 6) / sizes.length;
+    ui.scaleButtons = sizes.map((v, i) => {
+        const btn = w.button([[12 + i * (sw + 6), y], [sw, 38]], `${Math.round(v * 100)}%`,
+            function () {
+                const now = w.setUiScale(v);
+                paintScaleButtons();
+                setStatus(`UI size ${Math.round(now * 100)}%`);
+            }, { size: 12 });
+        inner.addSubview_(btn);
+        return btn;
+    });
+    paintScaleButtons();
+    y += 46;
 
     inner.addSubview_(w.label([[12, y], [width - 24, 18]], 'Memory', {
         size: 13, color: theme.accent,
@@ -1248,7 +1295,7 @@ function buildSettingsTab(width, height) {
     inner.addSubview_(w.button([[12, y], [width - 24, theme.TOUCH]], 'CLOSE AEROMOD', function () {
         ui.panel.setHidden_(true);
         timer.endClean();
-        power.disable(w.keyWindow());
+        power.disable(w.uiRoot());
     }, { size: 16, background: theme.danger }));
     y += theme.TOUCH + 16;
 
@@ -1420,7 +1467,7 @@ function refresh() {
 }
 
 function build() {
-    const window = w.keyWindow();
+    const window = w.uiRoot();
     if (window === null) { console.log('[aerox-tas] no key window'); return; }
 
     dpad.build(window);

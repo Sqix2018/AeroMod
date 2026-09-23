@@ -8,7 +8,7 @@ You need **Aerox 1.9.5**: AeroMod reads that version's memory layout and won't w
 |---|---|---|
 | A. Jailbroken + PC | Jailbreak, USB cable | Works today |
 | B. Jailbroken, no PC | Rootless jailbreak (Dopamine), AeroMod from Sileo | Works (tested: Dopamine, iOS 15.8) |
-| C. Not jailbroken | Your own decrypted Aerox IPA, `tools/patch_ipa.py`, Sideloadly, a JIT enabler | Experimental, untested |
+| C. Not jailbroken | Your own decrypted Aerox IPA, `tools/patch_ipa.py`, Sideloadly, StikDebug | Works (tested: iPhone, iOS 18.0.1) |
 
 ---
 
@@ -57,9 +57,9 @@ The jailbreak's tweak loader (ElleKit on Dopamine) injects the gadget only into 
 
 ---
 
-## C. Not jailbroken: sideloading (experimental)
+## C. Not jailbroken: sideloading
 
-You patch your own copy of the game, install it with Sideloadly, and launch it with JIT enabled. After a one-time setup there's no cable.
+Tested: iPhone on iOS 18.0.1 with StikDebug. You patch your own copy of the game, install it with **Sideloadly**, and launch it through **StikDebug**, which enables JIT. After a one-time setup on a PC, everything happens on the device.
 
 ### 1. Get a decrypted IPA of Aerox 1.9.5
 
@@ -77,32 +77,50 @@ This writes `Aerox-AeroMod.ipa` next to the original. The first run downloads Fr
 
 - adds `AeroMod.dylib` (Frida Gadget), `AeroMod.config` and `aerox-tas.js` to the app's `Frameworks/` folder;
 - adds one *weak* load command to the game's executable so iOS loads the gadget at launch. If the gadget is ever missing, the game still starts normally;
-- turns on Files app sharing, so the game's `Documents` folder (`boot.log`, `tas.log`, your macros) appears under **Files → On My iPhone → Aerox**;
+- turns on Files app sharing, so the game's `Documents` folder (`boot.log`, `tas.log`, your macros) appears under **Files → On My iPhone → Aerox** once AeroMod has run;
 - refuses an IPA that's still encrypted, and warns if it isn't Aerox 1.9.5.
 
-### 3. Install it with Sideloadly
+### 3. Install Aerox with Sideloadly
 
-1. On Windows, install [Sideloadly](https://sideloadly.io) and iTunes. Use the iTunes download from apple.com, not the Microsoft Store version: Sideloadly needs its device drivers. On macOS, just Sideloadly.
-2. Connect the device by USB, unlock it, and tap **Trust** when it asks.
-3. In Sideloadly, enter an Apple ID. A spare one is fine; it's only used to sign the app.
-4. Drag `Aerox-AeroMod.ipa` into Sideloadly and press **Start**. Leave the advanced options at their defaults: the patch is already inside the IPA, so there's nothing to inject.
-5. On the device:
-   - **Settings → General → VPN & Device Management**: trust your Apple ID's developer profile.
-   - iOS 16 and later: **Settings → Privacy & Security → Developer Mode** must be on.
+1. On Windows, install [Sideloadly](https://sideloadly.io), plus **iTunes** and **iCloud** from apple.com (not the Microsoft Store versions; Sideloadly needs their drivers). On macOS, just Sideloadly.
+2. Connect the device by USB, unlock it, and tap **Trust**.
+3. In Sideloadly, sign in with an Apple ID (a spare one is fine), drag in `Aerox-AeroMod.ipa`, and press **Start**. Leave the advanced options alone.
+4. On the device: **Settings → General → VPN & Device Management** → trust your Apple ID, and **Settings → Privacy & Security → Developer Mode** → on (the device restarts; the option appears after the first sideloaded app).
 
-With a free Apple ID the app stops opening after **7 days**. Install it again with Sideloadly; your saves and macros stay. SideStore can re-sign on the device instead, without the PC.
+Use **Sideloadly for Aerox**. Installing the patched game through iLoader reported success but didn't work in testing.
 
-If the App Store version of Aerox is installed, it gets replaced by this one, since both have the same bundle ID. The saved data is kept.
+**It installs as a second copy.** The App Store Aerox stays, and the sideloaded one appears next to it with its own save data. That means it starts with only level 1 unlocked, and TAS finishes never save progress. Use **SETTINGS → UNLOCK ALL LEVELS** once.
 
-### 4. Launch with JIT enabled
+### 4. Set up StikDebug (JIT) with iLoader
 
-AeroMod doesn't only run a script. It generates native code while it runs and patches a few game functions, and stock iOS only allows that for an app launched **with a debugger attached** ("enabling JIT"). Opened from the home screen, the patched game runs normally but AeroMod's hooks fail. Launch it through a JIT enabler instead:
+StikDebug launches an app with a debugger attached ("JIT"), which iOS requires for AeroMod's hooks. It's set up once with **iLoader** on the PC:
 
-- **iOS 17.4 and later:** **StikDebug**.
-- **Older iOS:** **SideStore**'s "Enable JIT", or **AltStore** with AltServer running on a computer on the same Wi-Fi.
+1. Download **iLoader** (PC program) and the **StikDebug** `.ipa` from their official pages.
+2. In iLoader, sign in with your Apple ID.
+3. Import the StikDebug `.ipa` into iLoader and install it.
+4. In iLoader, choose **Manage pairing file** and select StikDebug. That puts the device's pairing file inside StikDebug.
+5. On the device, install **LocalDevVPN** from the App Store. StikDebug talks to the device's debugging service through this local VPN.
 
-StikDebug and SideStore need a one-time *pairing file* made on a computer; each app's guide covers it. After that, JIT is enabled on the device itself over a local VPN, with no cable: open the JIT app, pick Aerox, and the AeroMod pill appears.
+### 5. Launch Aerox through StikDebug
 
-**TrollStore** (iOS 14.0-16.6.1 and 17.0 only) installs apps permanently, with no 7-day limit. Whether AeroMod's hooks work there without a debugger hasn't been tested.
+1. Open **LocalDevVPN** and connect.
+2. Open **StikDebug** and pick **Aerox** (the sideloaded copy). It launches with JIT and the **AeroMod** pill appears.
 
-This path is **untested on a real device**. If you try it, please open an issue with your iOS version and what happened: whether the pill appeared, and what `aerox-tas/boot.log` says (Files → On My iPhone → Aerox).
+Things learned the hard way:
+
+- **Always launch the modded game from StikDebug.** Opened from the Home Screen or Spotlight search, the sideloaded copy runs *without* AeroMod (it looks like a third copy of the game, but it's the same app without JIT). After being closed it can crash on the next plain launch.
+- **Don't add it to the Home Screen.** It isn't needed, and removing the icon again makes it easy to delete the app by accident. Deleting it means sideloading it again.
+- **The VPN only matters at launch.** Once running, Aerox keeps going if LocalDevVPN disconnects. Launching again needs the VPN connected and StikDebug.
+
+### Every 7 days (free Apple ID)
+
+Apps signed with a free Apple ID stop opening after **7 days**. Re-sign each app **with the tool that installed it**: Sideloadly for Aerox, iLoader for StikDebug. A reinstall with the same tool keeps its data (saves, macros, StikDebug's pairing file). Re-sign both on the same day.
+
+**SideStore (optional)** can do this re-signing on the device, with no PC. It refreshes its apps in the background while LocalDevVPN is connected, and it refreshes itself too. Two catches:
+
+- SideStore can only refresh itself **before** it expires. If it lapses past 7 days, you need the PC again to reinstall it.
+- A free Apple ID allows **3 sideloaded apps** at a time: SideStore, StikDebug and Aerox use all three. SideStore can only refresh apps it manages, so to have it handle Aerox, install the patched `.ipa` through SideStore (from the Files app) rather than Sideloadly.
+
+**TrollStore** (iOS 14.0-16.6.1 and 17.0 only) installs apps permanently, with no 7-day limit. Whether AeroMod works there without a debugger hasn't been tested.
+
+If something doesn't work, open an issue with the device, iOS version, what happened, and `aerox-tas/boot.log` from **Files → On My iPhone → Aerox**.

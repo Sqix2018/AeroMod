@@ -1117,6 +1117,8 @@ const VERSIONS = {
             motionReference: 0x2ffbb8, // CMAttitude*, alt-controls reference frame
 
             levelNumber: 0x2f2c24,    // int32, the level startGame: is about to run
+            lastLevelReached: 0x2f2c28, // int32, highest unlocked level ("LastLevelReached")
+            levelCount: 0x2f2c34,     // int32, number of levels (caps LastLevelReached)
             inPlay: 0x2ffb99,         // byte, controls live
 
             // Set while a blocking on-screen message is up: the "Get Ready!"
@@ -3975,7 +3977,32 @@ function install() {
     frame.onAfterFrame(afterFrameSettle, 'level');
 }
 
+// Level-select progress is one number: DAT LastLevelReached, saved to
+// NSUserDefaults and iCloud under "LastLevelReached" (the game only ever
+// raises it from iCloud, so this sticks). A sideloaded copy starts at level 1,
+// and TAS finishes never save a time, so without this every level would have
+// to be beaten with AeroMod closed first.
+function unlockAllLevels() {
+    let cap = 0;
+    try { cap = mem.global('levelCount').readS32(); } catch (err) { cap = 0; }
+    if (!(cap >= 1 && cap <= 99)) cap = 40;
+    const cell = mem.global('lastLevelReached');
+    const was = cell.readS32();
+    if (was < cap) cell.writeS32(cap);
+    const now = Math.max(was, cap);
+    const key = ObjC.classes.NSString.stringWithString_('LastLevelReached');
+    const defaults = ObjC.classes.NSUserDefaults.standardUserDefaults();
+    defaults.setInteger_forKey_(now, key);
+    defaults.synchronize();
+    try {
+        const cloud = ObjC.classes.NSUbiquitousKeyValueStore.defaultStore();
+        if (cloud !== null) cloud.setObject_forKey_(ObjC.classes.NSNumber.numberWithInt_(now), key);
+    } catch (err) { /* no iCloud on sideloaded builds */ }
+    return { was, now };
+}
+
 module.exports = {
+    unlockAllLevels,
     noteScene, loadedLevel,
     install, phase,
     inLevel, introPlaying, messageUp, readyPrompt, inPlay, started, complete, inMainMenu,
@@ -4836,7 +4863,7 @@ function start() {
 function buildUi() {
     ObjC.schedule(ObjC.mainQueue, function () {
         try {
-            const window = widgets.keyWindow();
+            const window = widgets.uiRoot(); // scaled container, see widgets.js
             if (window === null) {
                 console.log('[aerox-tas] no key window yet; retrying in 1s');
                 setTimeout(buildUi, 1000);
@@ -4912,7 +4939,7 @@ globalThis.tas = {
     split: () => splits.manualSplit(),
 
     // Whole-tool power
-    off: () => power.disable(widgets.keyWindow()),
+    off: () => power.disable(widgets.uiRoot()),
     on: () => power.enable(),
     noAds: (v) => ads.setBlocking(v !== false),
     logs: () => log.tail(40),
@@ -14643,6 +14670,14 @@ function syncPauseButtons() {
     syncShiftButtons();
 }
 
+function paintScaleButtons() {
+    const cur = w.uiScale();
+    (ui.scaleButtons || []).forEach((btn, i) => {
+        const on = Math.abs(w.SCALES[i] - cur) < 0.001;
+        btn.setBackgroundColor_(on ? theme.accentDim : theme.surfaceAlt);
+    });
+}
+
 function syncShiftButtons() {
     if (ui.macroShift !== null) {
         const on = macro.shifting();
@@ -15640,7 +15675,46 @@ function buildSettingsTab(width, height) {
         setStatus(level.inLevel() ? 'restarting level' : 'no level loaded');
         if (level.inLevel()) level.restart();
     }, { size: 14 }));
+    y += 46;
+
+    // Fresh (sideloaded) copies start at level 1, and TAS finishes never save.
+    inner.addSubview_(w.button([[12, y], [width - 24, 40]], 'UNLOCK ALL LEVELS', function () {
+        confirm('Unlock every level?',
+            'Opens every level in level select for this copy of the game. '
+            + 'This is saved like normal progress and cannot be relocked.',
+            function () {
+                try {
+                    const r = level.unlockAllLevels();
+                    setStatus(r.now > r.was
+                        ? `levels 1-${r.now} unlocked (was ${r.was}) - reopen level select`
+                        : `all ${r.now} levels were already unlocked`);
+                } catch (err) {
+                    setStatus(`unlock failed: ${err.message}`);
+                }
+            }, { yesLabel: 'Unlock', lines: 3 });
+    }, { size: 14 }));
     y += 50;
+
+    // Uniform scale for the whole AeroMod UI (text included). 100% was laid
+    // out for a large screen; phones default to 70%.
+    inner.addSubview_(w.label([[12, y], [width - 24, 18]], 'UI size', {
+        size: 13, color: theme.accent,
+    }));
+    y += 22;
+    const sizes = w.SCALES;
+    const sw = (width - 24 - (sizes.length - 1) * 6) / sizes.length;
+    ui.scaleButtons = sizes.map((v, i) => {
+        const btn = w.button([[12 + i * (sw + 6), y], [sw, 38]], `${Math.round(v * 100)}%`,
+            function () {
+                const now = w.setUiScale(v);
+                paintScaleButtons();
+                setStatus(`UI size ${Math.round(now * 100)}%`);
+            }, { size: 12 });
+        inner.addSubview_(btn);
+        return btn;
+    });
+    paintScaleButtons();
+    y += 46;
 
     inner.addSubview_(w.label([[12, y], [width - 24, 18]], 'Memory', {
         size: 13, color: theme.accent,
@@ -15725,7 +15799,7 @@ function buildSettingsTab(width, height) {
     inner.addSubview_(w.button([[12, y], [width - 24, theme.TOUCH]], 'CLOSE AEROMOD', function () {
         ui.panel.setHidden_(true);
         timer.endClean();
-        power.disable(w.keyWindow());
+        power.disable(w.uiRoot());
     }, { size: 16, background: theme.danger }));
     y += theme.TOUCH + 16;
 
@@ -15897,7 +15971,7 @@ function refresh() {
 }
 
 function build() {
-    const window = w.keyWindow();
+    const window = w.uiRoot();
     if (window === null) { console.log('[aerox-tas] no key window'); return; }
 
     dpad.build(window);
@@ -16913,7 +16987,7 @@ const ui = { card: null, timer: null };
 function flash(def) {
     ObjC.schedule(ObjC.mainQueue, function () {
         hide();
-        const window = w.keyWindow();
+        const window = w.uiRoot();
         if (window === null || def === null) return;
 
         const bounds = window.bounds();
@@ -17137,6 +17211,98 @@ function makeDraggable(handle, movable) {
     return gesture;
 }
 
+// ------------------------------------------------------------- UI scale
+//
+// Every AeroMod view lives in one full-screen container instead of on the
+// window. The container is laid out as a bigger virtual screen (window size /
+// scale) and then scaled down by `scale`, so everything shrinks uniformly -
+// text, buttons, borders, map, pad - and layouts designed for a large screen fit a
+// phone. Touches that land on no AeroMod view pass through to the game.
+
+const SCALE_FILE = 'ui-scale.json';
+const SCALES = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
+const scale = { value: null, root: null, window: null };
+
+function defaultScale(win) {
+    try {
+        const b = win.bounds();
+        const shortSide = Math.min(b[1][0], b[1][1]);
+        return shortSide < 600 ? 0.7 : 1.0; // phones vs tablets (points)
+    } catch (err) {
+        return 1.0;
+    }
+}
+
+function uiScale() {
+    if (scale.value === null) {
+        let saved = null;
+        try { saved = require('../core/storage').readJson(SCALE_FILE); } catch (err) { /* */ }
+        const v = saved && Number(saved.scale);
+        scale.value = (v >= 0.3 && v <= 1.5) ? v : null;
+    }
+    if (scale.value === null && scale.window !== null) scale.value = defaultScale(scale.window);
+    return scale.value === null ? 1.0 : scale.value;
+}
+
+function rootClass() {
+    if (ObjC.classes.AeroModRoot !== undefined) return ObjC.classes.AeroModRoot;
+    return ObjC.registerClass({
+        name: 'AeroModRoot',
+        super: ObjC.classes.UIView,
+        methods: {
+            // Our views get their touches; empty space goes to the game.
+            '- hitTest:withEvent:': {
+                types: '@@:{CGPoint=dd}@',
+                implementation: function (point, event) {
+                    const hit = this.super.hitTest_withEvent_(point, event);
+                    if (hit === null || hit.handle.equals(this.self.handle)) return NULL;
+                    return hit;
+                },
+            },
+        },
+    });
+}
+
+function layoutRoot() {
+    const root = scale.root;
+    const win = scale.window;
+    if (root === null || win === null) return;
+    const s = uiScale();
+    const b = win.bounds();
+    root.setTransform_([1, 0, 0, 1, 0, 0]);
+    root.layer().setAnchorPoint_([0, 0]);
+    root.setBounds_([[0, 0], [b[1][0] / s, b[1][1] / s]]);
+    root.layer().setPosition_([0, 0]);
+    root.setTransform_([s, 0, 0, s, 0, 0]);
+}
+
+// The container every AeroMod view is added to (created on first use).
+function uiRoot() {
+    const win = keyWindow();
+    if (win === null) return null;
+    if (scale.root !== null && scale.window !== null && scale.window.handle.equals(win.handle)) {
+        return scale.root;
+    }
+    const root = rootClass().alloc().initWithFrame_(win.bounds());
+    root.setBackgroundColor_(ObjC.classes.UIColor.clearColor());
+    root.setUserInteractionEnabled_(true);
+    win.addSubview_(root);
+    retained.push(root);
+    scale.root = root;
+    scale.window = win;
+    layoutRoot();
+    return root;
+}
+
+function setUiScale(v) {
+    const n = Number(v);
+    if (!(n >= 0.3 && n <= 1.5)) return uiScale();
+    scale.value = n;
+    try { require('../core/storage').writeJson(SCALE_FILE, { scale: n }); } catch (err) { /* */ }
+    layoutRoot();
+    return n;
+}
+
 function keyWindow() {
     const app = ObjC.classes.UIApplication.sharedApplication();
     const windows = app.windows();
@@ -17150,6 +17316,7 @@ function keyWindow() {
 module.exports = {
     EVENT, view, label, button, holdButton, slider, textField, scrollView,
     makeDraggable, keyWindow, retained, register, ensureTarget,
+    uiRoot, uiScale, setUiScale, SCALES,
 };
 
   };

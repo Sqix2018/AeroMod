@@ -97,7 +97,7 @@ function start() {
 function buildUi() {
     ObjC.schedule(ObjC.mainQueue, function () {
         try {
-            const window = widgets.keyWindow();
+            const window = widgets.uiRoot(); // scaled container, see widgets.js
             if (window === null) {
                 console.log('[aerox-tas] no key window yet; retrying in 1s');
                 setTimeout(buildUi, 1000);
@@ -173,7 +173,7 @@ globalThis.tas = {
     split: () => splits.manualSplit(),
 
     // Whole-tool power
-    off: () => power.disable(widgets.keyWindow()),
+    off: () => power.disable(widgets.uiRoot()),
     on: () => power.enable(),
     noAds: (v) => ads.setBlocking(v !== false),
     logs: () => log.tail(40),

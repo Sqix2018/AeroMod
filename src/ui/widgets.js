@@ -175,6 +175,98 @@ function makeDraggable(handle, movable) {
     return gesture;
 }
 
+// ------------------------------------------------------------- UI scale
+//
+// Every AeroMod view lives in one full-screen container instead of on the
+// window. The container is laid out as a bigger virtual screen (window size /
+// scale) and then scaled down by `scale`, so everything shrinks uniformly -
+// text, buttons, borders, map, pad - and layouts designed for a large screen fit a
+// phone. Touches that land on no AeroMod view pass through to the game.
+
+const SCALE_FILE = 'ui-scale.json';
+const SCALES = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
+const scale = { value: null, root: null, window: null };
+
+function defaultScale(win) {
+    try {
+        const b = win.bounds();
+        const shortSide = Math.min(b[1][0], b[1][1]);
+        return shortSide < 600 ? 0.7 : 1.0; // phones vs tablets (points)
+    } catch (err) {
+        return 1.0;
+    }
+}
+
+function uiScale() {
+    if (scale.value === null) {
+        let saved = null;
+        try { saved = require('../core/storage').readJson(SCALE_FILE); } catch (err) { /* */ }
+        const v = saved && Number(saved.scale);
+        scale.value = (v >= 0.3 && v <= 1.5) ? v : null;
+    }
+    if (scale.value === null && scale.window !== null) scale.value = defaultScale(scale.window);
+    return scale.value === null ? 1.0 : scale.value;
+}
+
+function rootClass() {
+    if (ObjC.classes.AeroModRoot !== undefined) return ObjC.classes.AeroModRoot;
+    return ObjC.registerClass({
+        name: 'AeroModRoot',
+        super: ObjC.classes.UIView,
+        methods: {
+            // Our views get their touches; empty space goes to the game.
+            '- hitTest:withEvent:': {
+                types: '@@:{CGPoint=dd}@',
+                implementation: function (point, event) {
+                    const hit = this.super.hitTest_withEvent_(point, event);
+                    if (hit === null || hit.handle.equals(this.self.handle)) return NULL;
+                    return hit;
+                },
+            },
+        },
+    });
+}
+
+function layoutRoot() {
+    const root = scale.root;
+    const win = scale.window;
+    if (root === null || win === null) return;
+    const s = uiScale();
+    const b = win.bounds();
+    root.setTransform_([1, 0, 0, 1, 0, 0]);
+    root.layer().setAnchorPoint_([0, 0]);
+    root.setBounds_([[0, 0], [b[1][0] / s, b[1][1] / s]]);
+    root.layer().setPosition_([0, 0]);
+    root.setTransform_([s, 0, 0, s, 0, 0]);
+}
+
+// The container every AeroMod view is added to (created on first use).
+function uiRoot() {
+    const win = keyWindow();
+    if (win === null) return null;
+    if (scale.root !== null && scale.window !== null && scale.window.handle.equals(win.handle)) {
+        return scale.root;
+    }
+    const root = rootClass().alloc().initWithFrame_(win.bounds());
+    root.setBackgroundColor_(ObjC.classes.UIColor.clearColor());
+    root.setUserInteractionEnabled_(true);
+    win.addSubview_(root);
+    retained.push(root);
+    scale.root = root;
+    scale.window = win;
+    layoutRoot();
+    return root;
+}
+
+function setUiScale(v) {
+    const n = Number(v);
+    if (!(n >= 0.3 && n <= 1.5)) return uiScale();
+    scale.value = n;
+    try { require('../core/storage').writeJson(SCALE_FILE, { scale: n }); } catch (err) { /* */ }
+    layoutRoot();
+    return n;
+}
+
 function keyWindow() {
     const app = ObjC.classes.UIApplication.sharedApplication();
     const windows = app.windows();
@@ -188,4 +280,5 @@ function keyWindow() {
 module.exports = {
     EVENT, view, label, button, holdButton, slider, textField, scrollView,
     makeDraggable, keyWindow, retained, register, ensureTarget,
+    uiRoot, uiScale, setUiScale, SCALES,
 };

@@ -64,6 +64,8 @@ const VERSIONS = {
             motionReference: 0x2ffbb8, // CMAttitude*, alt-controls reference frame
 
             levelNumber: 0x2f2c24,    // int32, the level startGame: is about to run
+            lastLevelReached: 0x2f2c28, // int32, highest unlocked level ("LastLevelReached")
+            levelCount: 0x2f2c34,     // int32, number of levels (caps LastLevelReached)
             inPlay: 0x2ffb99,         // byte, controls live
 
             // Set while a blocking on-screen message is up: the "Get Ready!"
