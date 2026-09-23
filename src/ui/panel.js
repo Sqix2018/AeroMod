@@ -900,13 +900,6 @@ function buildSkinTab(width, height) {
     const page = w.view([[0, 0], [width, height]], null, 0);
     let y = 6;
 
-    page.addSubview_(w.label([[12, y], [width - 24, 46]],
-        'Extra TAS skins. PNG wraps are scaled to 1024x512 (2:1) and cropped to fit the ball. '
-        + 'Put files in assets/skins then rebuild. Names: Eye.png comet.jpg golf.png galaxy.jpg globe.png clock.jpg neon.png flag-us.png. '
-        + 'Glass copies the clear plasma shell (SkyDome + DarkenReflect), not the tendrils. CLOSE AEROMOD restores.',
-        { size: 10, color: theme.textDim, lines: 3 }));
-    y += 48;
-
     const half = (width - 30) / 2;
     page.addSubview_(w.button([[12, y], [half, 38]], 'STOCK BALL', function () {
         const r = skins.apply('stock');

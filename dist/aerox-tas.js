@@ -15377,13 +15377,6 @@ function buildSkinTab(width, height) {
     const page = w.view([[0, 0], [width, height]], null, 0);
     let y = 6;
 
-    page.addSubview_(w.label([[12, y], [width - 24, 46]],
-        'Extra TAS skins. PNG wraps are scaled to 1024x512 (2:1) and cropped to fit the ball. '
-        + 'Put files in assets/skins then rebuild. Names: Eye.png comet.jpg golf.png galaxy.jpg globe.png clock.jpg neon.png flag-us.png. '
-        + 'Glass copies the clear plasma shell (SkyDome + DarkenReflect), not the tendrils. CLOSE AEROMOD restores.',
-        { size: 10, color: theme.textDim, lines: 3 }));
-    y += 48;
-
     const half = (width - 30) / 2;
     page.addSubview_(w.button([[12, y], [half, 38]], 'STOCK BALL', function () {
         const r = skins.apply('stock');
@@ -16257,10 +16250,6 @@ function showNotice(window) {
         'To bring AeroMod back:\nhold two corners of the screen at once.',
         { size: 15, color: theme.accent, lines: 2, center: true }));
 
-    card.addSubview_(w.label([[20, 162], [width - 40, 26]],
-        'Or run tas.on() from the Frida console.',
-        { size: 11, color: theme.textDim, center: true }));
-
     card.addSubview_(w.button([[20, height - 64], [width - 40, theme.TOUCH]], 'OK',
         function () {
             card.removeFromSuperview();
@@ -16302,8 +16291,7 @@ function disable(window) {
     restore.arm();
 
     if (window !== null && window !== undefined) showNotice(window);
-    log.info('disabled - the game is unmodified. Hold two corners to restore, '
-        + 'or run tas.on()', 'power');
+    log.info('disabled - the game is unmodified. Hold two corners to restore', 'power');
     return true;
 }
 

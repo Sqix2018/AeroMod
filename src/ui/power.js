@@ -76,10 +76,6 @@ function showNotice(window) {
         'To bring AeroMod back:\nhold two corners of the screen at once.',
         { size: 15, color: theme.accent, lines: 2, center: true }));
 
-    card.addSubview_(w.label([[20, 162], [width - 40, 26]],
-        'Or run tas.on() from the Frida console.',
-        { size: 11, color: theme.textDim, center: true }));
-
     card.addSubview_(w.button([[20, height - 64], [width - 40, theme.TOUCH]], 'OK',
         function () {
             card.removeFromSuperview();
@@ -121,8 +117,7 @@ function disable(window) {
     restore.arm();
 
     if (window !== null && window !== undefined) showNotice(window);
-    log.info('disabled - the game is unmodified. Hold two corners to restore, '
-        + 'or run tas.on()', 'power');
+    log.info('disabled - the game is unmodified. Hold two corners to restore', 'power');
     return true;
 }
 
