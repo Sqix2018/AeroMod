@@ -63,7 +63,7 @@ Tested: iPhone on iOS 18.0.1 with StikDebug. You patch your own copy of the game
 
 ### 1. Get a decrypted IPA of Aerox 1.9.5
 
-App Store apps are encrypted, and the patch only works on a decrypted copy. This project doesn't provide the game, so use a copy you own. The usual way is to dump it from a jailbroken device that has Aerox 1.9.5 installed from the App Store, using a decrypter such as **CrackerXI+** or **TrollDecrypt** (on the device) or **bagbak** (from a PC). The result is an `.ipa` file.
+App Store apps are encrypted, and the patch only works on a decrypted copy. This project doesn't provide the game, so use a copy you own. The usual way is to dump it from a jailbroken device that has Aerox 1.9.5 installed from the App Store, using a decrypter such as **CrackerXI+** or **TrollDecrypt** (on the device) or **bagbak** (from a PC). The result is an `.ipa` file. (https://armconverter.com/store/us/app/aerox/id370532221?bundleId=com.synoptical.aerox) 
 
 ### 2. Add AeroMod to it
 
