@@ -2,6 +2,8 @@
 //     frida -U -n Aerox -q -l tools/tweak_diag.js
 // Prints what the tweak loader sees, then tries loading the gadget by hand
 // (which starts AeroMod if it works). Paste the output into an issue.
+// Only for when the pill does NOT appear: with the gadget running, this
+// PC session is a second Frida in the same process and can crash Aerox.
 
 const DIR = '/var/jb/Library/MobileSubstrate/DynamicLibraries';
 const fm = ObjC.classes.NSFileManager.defaultManager();
@@ -21,7 +23,11 @@ show('loader modules in Aerox', () => Process.enumerateModules()
     .map(m => m.name)
     .filter(n => /ellekit|inject|substrate|substitute|systemhook|libhooker|tweak|aeromod|gadget/i.test(n))
     .join(', ') || '(none - no tweaks are being injected into Aerox)');
-show('manual load of AeroMod.dylib', () => {
+if (Process.findModuleByName('AeroMod.dylib') !== null) {
+    // The tweak loaded. A second Frida (this session) in the same process
+    // fights the gadget, so stop here instead of poking it.
+    console.log('AeroMod.dylib is loaded by the tweak - it works. Detach and do not attach from a PC while it is installed.');
+} else show('manual load of AeroMod.dylib', () => {
     const m = Module.load(DIR + '/AeroMod.dylib');
     return `ok at ${m.base} - the gadget itself works; the loader just is not loading it`;
 });
