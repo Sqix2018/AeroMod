@@ -15,6 +15,8 @@
   }
   function __require(id) {
     if (__cache[id]) return __cache[id].exports;
+    if (!__defs[id] && __defs[id + "/index"]) id = id + "/index";
+    if (__cache[id]) return __cache[id].exports;
     var def = __defs[id];
     if (!def) throw new Error("module not found: " + id);
     var m = { exports: {} };

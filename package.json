@@ -1,6 +1,6 @@
 {
   "name": "aerox-tas",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "AeroMod - TAS and practice toolkit for Aerox 1.9.5 (iOS), injected with Frida",
   "private": true,
   "scripts": {
