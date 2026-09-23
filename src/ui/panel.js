@@ -1266,7 +1266,7 @@ function buildInputTab(width, height) {
     let y = 6;
 
     page.addSubview_(w.label([[12, y], [width - 24, 30]],
-        'Replaces tilt with the arrow pad so the iPad can lie flat.',
+        'Replaces tilt with the arrow pad so the device can lie flat.',
         { size: 11, color: theme.textDim, lines: 2 }));
     y += 32;
 

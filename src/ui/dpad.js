@@ -1,7 +1,7 @@
 // Floating arrow pad that replaces tilt.
 //
 // This is the piece that makes the rest of the TAS workflow usable: with tilt
-// controls the iPad is constantly moving, so hitting small buttons is a fight.
+// controls the device is constantly moving, so hitting small buttons is a fight.
 // Driving the game from a D-pad lets the device lie flat and the screen stay
 // still, which is the only way precise frame-stepping is practical.
 

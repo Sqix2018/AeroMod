@@ -54,7 +54,7 @@ Split golds are **TAS-local** (stored by AeroMod), not the game's bests.
 
 | Control | What it does |
 |---|---|
-| Virtual tilt | An on-screen arrow pad replaces the accelerometer, so the iPad can lie flat. |
+| Virtual tilt | An on-screen arrow pad replaces the accelerometer, so the device can lie flat. |
 | Hardware keyboard | A paired keyboard drives the game (keys below). |
 | Tilt magnitude | 5–100 % of the current control scheme's maximum tilt. |
 | Invert steer / Invert thrust | Flips the pad and keyboard directions. Real device tilt is never inverted. |

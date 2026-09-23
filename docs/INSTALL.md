@@ -7,7 +7,7 @@ You need **Aerox 1.9.5**: AeroMod reads that version's memory layout and won't w
 | Setup | Needs | Status |
 |---|---|---|
 | A. Jailbroken + PC | Jailbreak, USB cable | Works today |
-| B. Jailbroken, no PC | Rootless jailbreak (Dopamine), AeroMod from Sileo | Works (tested: Dopamine, iOS 15.8, iPad Air 2) |
+| B. Jailbroken, no PC | Rootless jailbreak (Dopamine), AeroMod from Sileo | Works (tested: Dopamine, iOS 15.8) |
 | C. Not jailbroken | Your own decrypted Aerox IPA, `tools/patch_ipa.py`, Sideloadly, a JIT enabler | Experimental, untested |
 
 ---

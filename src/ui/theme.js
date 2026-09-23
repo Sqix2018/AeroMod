@@ -1,5 +1,5 @@
 // Shared colours and metrics. Touch targets are >= 44pt per Apple's guidance,
-// which matters here because you are hitting them one-handed on an iPad.
+// which matters here because you are hitting them one-handed on a phone or tablet.
 
 function rgba(r, g, b, a) {
     return ObjC.classes.UIColor.colorWithRed_green_blue_alpha_(r, g, b, a);

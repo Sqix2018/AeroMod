@@ -8,7 +8,7 @@ It runs inside the game as a [Frida](https://frida.re/) script and adds a panel 
 - **Speed control and frame stepping** – slow motion, pause, +1 / +10 / +60 frame steps.
 - **Splits and a run timer** – drop split boxes anywhere, compare against TAS-local golds.
 - **Teleport and a top-down coordinate picker.**
-- **Virtual tilt and hardware keyboard input** – play with the iPad flat on a desk.
+- **Virtual tilt and hardware keyboard input** – play with the device flat on a desk.
 - **Death-warp tools** – arm warps on demand and see every level's exact warp zone on a map.
 - **Cosmetic ball skins** unlocked by TAS achievements.
 

@@ -1,4 +1,4 @@
-// Hardware keyboard support for iPad.
+// Hardware keyboard support for any iOS device (iOS 13.4+).
 //
 // A paired Bluetooth keyboard is by far the best way to drive this: arrows for
 // tilt, space to pause, and a key to step a frame, all without touching the

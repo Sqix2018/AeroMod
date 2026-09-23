@@ -13647,7 +13647,7 @@ module.exports = {"1":{"ef":{"mi":[-97.55,0.08,-48.05],"mx":[-94.45,24.18,-47.95
 // Floating arrow pad that replaces tilt.
 //
 // This is the piece that makes the rest of the TAS workflow usable: with tilt
-// controls the iPad is constantly moving, so hitting small buttons is a fight.
+// controls the device is constantly moving, so hitting small buttons is a fight.
 // Driving the game from a D-pad lets the device lie flat and the screen stay
 // still, which is the only way precise frame-stepping is practical.
 
@@ -13826,7 +13826,7 @@ module.exports = { build, refresh, setVisible, isVisible, state, box: () => box 
 
   };
   __defs["ui/keyboard"] = function (module, exports, require) {
-// Hardware keyboard support for iPad.
+// Hardware keyboard support for any iOS device (iOS 13.4+).
 //
 // A paired Bluetooth keyboard is by far the best way to drive this: arrows for
 // tilt, space to pause, and a key to step a frame, all without touching the
@@ -15743,7 +15743,7 @@ function buildInputTab(width, height) {
     let y = 6;
 
     page.addSubview_(w.label([[12, y], [width - 24, 30]],
-        'Replaces tilt with the arrow pad so the iPad can lie flat.',
+        'Replaces tilt with the arrow pad so the device can lie flat.',
         { size: 11, color: theme.textDim, lines: 2 }));
     y += 32;
 
@@ -16565,7 +16565,7 @@ module.exports = { ALL, DEFAULT_ON, state, load, isOn, setOn, visible };
   };
   __defs["ui/theme"] = function (module, exports, require) {
 // Shared colours and metrics. Touch targets are >= 44pt per Apple's guidance,
-// which matters here because you are hitting them one-handed on an iPad.
+// which matters here because you are hitting them one-handed on a phone or tablet.
 
 function rgba(r, g, b, a) {
     return ObjC.classes.UIColor.colorWithRed_green_blue_alpha_(r, g, b, a);
