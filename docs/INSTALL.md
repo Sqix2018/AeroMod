@@ -77,6 +77,7 @@ This writes `Aerox-AeroMod.ipa` next to the original. The first run downloads Fr
 
 - adds `AeroMod.dylib` (Frida Gadget), `AeroMod.config` and `aerox-tas.js` to the app's `Frameworks/` folder;
 - adds one *weak* load command to the game's executable so iOS loads the gadget at launch. If the gadget is ever missing, the game still starts normally;
+- turns on Files app sharing, so the game's `Documents` folder (`boot.log`, `tas.log`, your macros) appears under **Files → On My iPhone → Aerox**;
 - refuses an IPA that's still encrypted, and warns if it isn't Aerox 1.9.5.
 
 ### 3. Install it with Sideloadly
@@ -104,4 +105,4 @@ StikDebug and SideStore need a one-time *pairing file* made on a computer; each 
 
 **TrollStore** (iOS 14.0-16.6.1 and 17.0 only) installs apps permanently, with no 7-day limit. Whether AeroMod's hooks work there without a debugger hasn't been tested.
 
-This path is **untested on a real device**. If you try it, please open an issue with your iOS version and what happened: whether the pill appeared, and anything in `Documents/aerox-tas/tas.log`.
+This path is **untested on a real device**. If you try it, please open an issue with your iOS version and what happened: whether the pill appeared, and what `aerox-tas/boot.log` says (Files → On My iPhone → Aerox).

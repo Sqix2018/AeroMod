@@ -10,6 +10,9 @@ What it changes (nothing else):
     Payload/Aerox.app/Frameworks/aerox-tas.js     AeroMod (dist/aerox-tas.js)
     Payload/Aerox.app/Aerox                        + one LC_LOAD_WEAK_DYLIB for
                                                    @executable_path/Frameworks/AeroMod.dylib
+    Payload/Aerox.app/Info.plist                   + Files app sharing, so the game's
+                                                   Documents (boot.log, tas.log,
+                                                   macros) show in Files -> On My iPhone
 
 The load command is weak, so the game still starts if the dylib is missing.
 Signing is left to Sideloadly / SideStore, which re-sign everything anyway.
@@ -120,6 +123,12 @@ def main():
     exe_name = app + info['CFBundleExecutable']
     exe, results = patch_executable(src.read(exe_name))
 
+    # Without a jailbreak there is no Filza: expose Documents in the Files app
+    # so boot.log / tas.log / macros can be read and backed up.
+    info['UIFileSharingEnabled'] = True
+    info['LSSupportsOpeningDocumentsInPlace'] = True
+    info_data = plistlib.dumps(info, fmt=plistlib.FMT_BINARY)
+
     added = {
         app + 'Frameworks/' + DYLIB_NAME: package.gadget(),
         app + 'Frameworks/AeroMod.config': config,
@@ -129,7 +138,12 @@ def main():
         for item in src.infolist():
             if item.filename in added:
                 continue
-            data = exe if item.filename == exe_name else src.read(item.filename)
+            if item.filename == exe_name:
+                data = exe
+            elif item.filename == info_name:
+                data = info_data
+            else:
+                data = src.read(item.filename)
             dst.writestr(item, data)
         for name, data in added.items():
             zi = zipfile.ZipInfo(name)
