@@ -30,7 +30,7 @@ The Frida console then shows AeroMod's messages and accepts `tas.*` commands. Cl
 
 For rootless jailbreaks: Dopamine, or palera1n in rootless mode.
 
-1. In Sileo (or Zebra), add the source `https://sqix2018.github.io/AeroMod/`.
+1. In Sileo (or Zebra), add the source `https://sqix2018.github.io/`.
 2. Install **AeroMod**.
 3. Open Aerox. AeroMod starts on its own; tap the **AeroMod** pill.
 
@@ -50,7 +50,7 @@ The jailbreak's tweak loader (ElleKit on Dopamine) injects the gadget only into 
 - **Don't combine with setup A.** With the package installed, don't also inject from a PC, because two copies would fight over the same hooks. Uninstall the package, or disable it in your tweak manager, to use setup A.
 - **Rootful jailbreaks** (checkra1n, unc0ver) would need a second build with paths without `/var/jb` and architecture `iphoneos-arm`. That build doesn't exist yet.
 
-**Maintainers:** `python tools/package.py` builds the `.deb` into `packaging/out/` and the repo files into `repo/`, which are published on the `gh-pages` branch.
+**Maintainers:** `python tools/package.py` builds the `.deb` into `packaging/out/` and the repo files into `repo/`, which are published as the `Sqix2018/sqix2018.github.io` repo (served at `https://sqix2018.github.io/`).
 
 ---
 

@@ -16,7 +16,7 @@ The gadget reads <its own name>.config, so the three files share a name.
 Rootless (Dopamine, rootless palera1n) only; architecture iphoneos-arm64.
 
 repo/ is a flat Sileo repo (Packages, Packages.bz2/.gz, Release, debs/) to
-publish on the gh-pages branch. Frida Gadget is downloaded once into
+publish as the Sqix2018/sqix2018.github.io repo (https://sqix2018.github.io/). Frida Gadget is downloaded once into
 packaging/cache/ (not committed).
 """
 
@@ -43,7 +43,7 @@ ARCH = 'iphoneos-arm64'
 PREFIX = 'var/jb'
 TWEAK_DIR = PREFIX + '/Library/MobileSubstrate/DynamicLibraries'
 SCRIPT_PATH = '/' + PREFIX + '/Library/AeroMod/aerox-tas.js'
-REPO_URL = 'https://sqix2018.github.io/AeroMod/'
+REPO_URL = 'https://sqix2018.github.io/'
 
 
 def gadget():

@@ -27,7 +27,7 @@ With the panel closed (**SETTINGS → CLOSE AEROMOD**) the game is back to stock
 
 ## Install
 
-- **Rootless jailbreak (Dopamine):** add `https://sqix2018.github.io/AeroMod/` in Sileo and install **AeroMod**. No PC needed.
+- **Rootless jailbreak (Dopamine):** add `https://sqix2018.github.io/` in Sileo and install **AeroMod**. No PC needed.
 - **Jailbroken + PC:** the quick start below.
 - **Not jailbroken:** patch your own decrypted IPA with `tools/patch_ipa.py`, install it with Sideloadly and launch it through a JIT enabler (untested).
 
@@ -94,7 +94,7 @@ tools/
   check.py        static require/export sanity check
   scn.py          reader for the game's .scn level files
   scn_zones.py    bakes src/tas/warpzones-data.js from your copy of the game
-  package.py      builds the rootless .deb and the Sileo repo (repo/, for gh-pages)
+  package.py      builds the rootless .deb and the Sileo repo (repo/, for sqix2018.github.io)
   patch_ipa.py    adds AeroMod to your own decrypted IPA for sideloading
 docs/
 ```

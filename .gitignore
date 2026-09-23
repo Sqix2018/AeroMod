@@ -7,7 +7,7 @@ __pycache__/
 *.ipa
 *.scn
 *.pvr
-# build outputs (repo/ is published on the gh-pages branch)
+# build outputs (repo/ is published as Sqix2018/sqix2018.github.io)
 packaging/cache/
 packaging/out/
 repo/
