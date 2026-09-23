@@ -1,0 +1,13 @@
+node_modules/
+*.log
+.DS_Store
+__pycache__/
+*.pyc
+# Game files are Synoptical's - never commit them
+*.ipa
+*.scn
+*.pvr
+# build outputs (repo/ is published on the gh-pages branch)
+packaging/cache/
+packaging/out/
+repo/
