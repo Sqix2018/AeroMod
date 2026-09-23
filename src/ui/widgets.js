@@ -165,8 +165,9 @@ function makeDraggable(handle, movable) {
         const t = g.translationInView_(parent);
         if (t[0] === 0 && t[1] === 0) return;
 
-        const f = movable.frame();
-        movable.setFrame_([[f[0][0] + t[0], f[0][1] + t[1]], [f[1][0], f[1][1]]]);
+        // center, not frame: AeroMod views are scaled (see UI scale above).
+        const c = movable.center();
+        movable.setCenter_([c[0] + t[0], c[1] + t[1]]);
         g.setTranslation_inView_([0, 0], parent);
     });
 
@@ -177,15 +178,21 @@ function makeDraggable(handle, movable) {
 
 // ------------------------------------------------------------- UI scale
 //
-// Every AeroMod view lives in one full-screen container instead of on the
-// window. The container is laid out as a bigger virtual screen (window size /
-// scale) and then scaled down by `scale`, so everything shrinks uniformly -
-// text, buttons, borders, map, pad - and layouts designed for a large screen fit a
-// phone. Touches that land on no AeroMod view pass through to the game.
+// Builders get uiRoot() instead of the window: it reports a bigger virtual
+// screen (window size / scale), and every view added through it is scaled by
+// `scale` around its top-left corner with its position scaled to match. So
+// everything shrinks uniformly - text, buttons, borders, map, pad - and
+// layouts designed for a large screen fit a phone.
+//
+// Each view stays a direct child of the window, so touches are handled by
+// UIKit as usual. (A scaled full-screen container needed a hitTest: override
+// to let taps through to the game, and that override crashed on every tap.)
+// A scaled view's frame is not reliable: move it with setCenter_ (drag) or
+// placeView() below.
 
 const SCALE_FILE = 'ui-scale.json';
 const SCALES = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
-const scale = { value: null, root: null, window: null };
+const scale = { value: null, applied: 1.0, window: null, root: null, views: [] };
 
 function defaultScale(win) {
     try {
@@ -208,54 +215,49 @@ function uiScale() {
     return scale.value === null ? 1.0 : scale.value;
 }
 
-function rootClass() {
-    if (ObjC.classes.AeroModRoot !== undefined) return ObjC.classes.AeroModRoot;
-    return ObjC.registerClass({
-        name: 'AeroModRoot',
-        super: ObjC.classes.UIView,
-        methods: {
-            // Our views get their touches; empty space goes to the game.
-            '- hitTest:withEvent:': {
-                types: '@@:{CGPoint=dd}@',
-                implementation: function (point, event) {
-                    const hit = this.super.hitTest_withEvent_(point, event);
-                    if (hit === null || hit.handle.equals(this.self.handle)) return NULL;
-                    return hit;
-                },
-            },
-        },
-    });
+function virtualSize() {
+    const b = scale.window.bounds();
+    const s = scale.applied;
+    return [b[1][0] / s, b[1][1] / s];
 }
 
-function layoutRoot() {
-    const root = scale.root;
-    const win = scale.window;
-    if (root === null || win === null) return;
-    const s = uiScale();
-    const b = win.bounds();
-    root.setTransform_([1, 0, 0, 1, 0, 0]);
-    root.layer().setAnchorPoint_([0, 0]);
-    root.setBounds_([[0, 0], [b[1][0] / s, b[1][1] / s]]);
-    root.layer().setPosition_([0, 0]);
-    root.setTransform_([s, 0, 0, s, 0, 0]);
+// Scale `view` (already on the window, identity transform) and keep its
+// virtual frame: origin (x, y) in virtual points -> window points x*s, y*s.
+function adopt(view) {
+    const s = scale.applied;
+    const f = view.frame();
+    const [vw, vh] = virtualSize();
+    const full = Math.abs(f[1][0] - vw) < 1 && Math.abs(f[1][1] - vh) < 1;
+    view.layer().setAnchorPoint_([0, 0]);
+    view.setCenter_([f[0][0] * s, f[0][1] * s]);
+    view.setTransform_([s, 0, 0, s, 0, 0]);
+    scale.views.push({ view, full });
 }
 
-// The container every AeroMod view is added to (created on first use).
+// Set a scaled view's frame in virtual points.
+function placeView(view, frame) {
+    const s = scale.applied;
+    view.setBounds_([[0, 0], [frame[1][0], frame[1][1]]]);
+    view.setCenter_([frame[0][0] * s, frame[0][1] * s]);
+}
+
+// Stand-in for the window that builders add their views to.
 function uiRoot() {
     const win = keyWindow();
     if (win === null) return null;
     if (scale.root !== null && scale.window !== null && scale.window.handle.equals(win.handle)) {
         return scale.root;
     }
-    const root = rootClass().alloc().initWithFrame_(win.bounds());
-    root.setBackgroundColor_(ObjC.classes.UIColor.clearColor());
-    root.setUserInteractionEnabled_(true);
-    win.addSubview_(root);
-    retained.push(root);
-    scale.root = root;
     scale.window = win;
-    layoutRoot();
-    return root;
+    scale.applied = uiScale();
+    scale.views = [];
+    scale.root = {
+        handle: win.handle,
+        bounds: () => [[0, 0], virtualSize()],
+        addSubview_: (view) => { win.addSubview_(view); adopt(view); },
+        bringSubviewToFront_: (view) => win.bringSubviewToFront_(view),
+    };
+    return scale.root;
 }
 
 function setUiScale(v) {
@@ -263,7 +265,22 @@ function setUiScale(v) {
     if (!(n >= 0.3 && n <= 1.5)) return uiScale();
     scale.value = n;
     try { require('../core/storage').writeJson(SCALE_FILE, { scale: n }); } catch (err) { /* */ }
-    layoutRoot();
+    if (scale.window === null) return n;
+    const old = scale.applied;
+    scale.applied = n;
+    const [vw, vh] = virtualSize();
+    scale.views = scale.views.filter(e => {
+        try {
+            if (e.view.superview() === null) return false;
+            const c = e.view.center();
+            e.view.setTransform_([n, 0, 0, n, 0, 0]);
+            e.view.setCenter_([c[0] / old * n, c[1] / old * n]);
+            if (e.full) e.view.setBounds_([[0, 0], [vw, vh]]);
+            return true;
+        } catch (err) {
+            return false;
+        }
+    });
     return n;
 }
 
@@ -280,5 +297,5 @@ function keyWindow() {
 module.exports = {
     EVENT, view, label, button, holdButton, slider, textField, scrollView,
     makeDraggable, keyWindow, retained, register, ensureTarget,
-    uiRoot, uiScale, setUiScale, SCALES,
+    uiRoot, uiScale, setUiScale, placeView, SCALES,
 };

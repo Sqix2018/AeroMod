@@ -50,7 +50,7 @@ function layoutTimer() {
     if (ui.timer === null) return;
     const width = ui.screenWidth || 220;
     const both = chrome.showTimer && chrome.showSegment;
-    ui.timer.setFrame_([[(width - 220) / 2, 10], [220, both ? 68 : 44]]);
+    w.placeView(ui.timer, [[(width - 220) / 2, 10], [220, both ? 68 : 44]]);
     if (ui.clock !== null) {
         ui.clock.setFrame_([[0, 0], [220, both ? 40 : 44]]);
         ui.clock.setHidden_(!chrome.showTimer);
