@@ -102,6 +102,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('ipa')
     ap.add_argument('-o', '--output')
+    ap.add_argument('--gadget', help='use this Frida Gadget (.dylib or .xz) instead of downloading')
     args = ap.parse_args()
     out = args.output or os.path.splitext(args.ipa)[0] + '-AeroMod.ipa'
     script = open(os.path.join(ROOT, 'dist', 'aerox-tas.js'), 'rb').read()
@@ -130,7 +131,7 @@ def main():
     info_data = plistlib.dumps(info, fmt=plistlib.FMT_BINARY)
 
     added = {
-        app + 'Frameworks/' + DYLIB_NAME: package.gadget(),
+        app + 'Frameworks/' + DYLIB_NAME: package.gadget(args.gadget),
         app + 'Frameworks/AeroMod.config': config,
         app + 'Frameworks/aerox-tas.js': script,
     }

@@ -29,8 +29,10 @@ import json
 import lzma
 import os
 import shutil
+import ssl
 import tarfile
 import time
+import urllib.error
 import urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -46,15 +48,50 @@ SCRIPT_PATH = '/' + PREFIX + '/Library/AeroMod/aerox-tas.js'
 REPO_URL = 'https://sqix2018.github.io/'
 
 
-def gadget():
+CERT_HELP = '''
+Could not download Frida Gadget: this Python can't verify HTTPS certificates.
+Common with the python.org installer on macOS. Fix it once, then run again:
+
+    /Applications/Python\\ 3.XX/Install\\ Certificates.command     (use your version)
+or
+    python3 -m pip install --upgrade certifi
+
+Or download {name} yourself from
+    {url}
+and pass it with --gadget path/to/{name}
+'''
+
+
+def fetch(url):
+    try:
+        with urllib.request.urlopen(url) as r:
+            return r.read()
+    except urllib.error.URLError as err:
+        if 'CERTIFICATE_VERIFY_FAILED' not in str(err):
+            raise
+    # python.org's macOS build ships without the system certificates. certifi
+    # has them, if it is installed.
+    try:
+        import certifi
+    except ImportError:
+        raise SystemExit(CERT_HELP.format(url=url, name=url.rsplit('/', 1)[1]))
+    ctx = ssl.create_default_context(cafile=certifi.where())
+    with urllib.request.urlopen(url, context=ctx) as r:
+        return r.read()
+
+
+def gadget(local=None):
+    """Frida Gadget dylib bytes. `local` may be a .dylib or the release .xz."""
+    if local:
+        data = open(local, 'rb').read()
+        return lzma.decompress(data) if local.endswith('.xz') else data
     cache = os.path.join(ROOT, 'packaging', 'cache')
     os.makedirs(cache, exist_ok=True)
     path = os.path.join(cache, f'FridaGadget-{FRIDA_VERSION}.dylib')
     if not os.path.exists(path):
         url = GADGET_URL.format(v=FRIDA_VERSION)
         print('downloading', url)
-        with urllib.request.urlopen(url) as r:
-            data = lzma.decompress(r.read())
+        data = lzma.decompress(fetch(url))
         with open(path, 'wb') as f:
             f.write(data)
     return open(path, 'rb').read()
@@ -126,9 +163,9 @@ def control_text(version, size_kb):
     )
 
 
-def build_deb(version):
+def build_deb(version, local_gadget=None):
     script = open(os.path.join(ROOT, 'dist', 'aerox-tas.js'), 'rb').read()
-    dylib = gadget()
+    dylib = gadget(local_gadget)
     config = json.dumps({
         'interaction': {'type': 'script', 'path': SCRIPT_PATH, 'on_change': 'ignore'},
     }, indent=2).encode()
@@ -195,8 +232,9 @@ def build_repo(debs):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--version', default=json.load(open(os.path.join(ROOT, 'package.json')))['version'])
+    ap.add_argument('--gadget', help='use this Frida Gadget (.dylib or .xz) instead of downloading')
     args = ap.parse_args()
-    build_repo([build_deb(args.version)])
+    build_repo([build_deb(args.version, args.gadget)])
 
 
 if __name__ == '__main__':
