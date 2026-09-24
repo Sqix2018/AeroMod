@@ -58,15 +58,17 @@ While AeroMod is open, finishes **do not** save menu bests or Game Center scores
 
 The file you inject is `dist/aerox-tas.js`, bundled from `src/`.
 
-Windows, no Node needed:
+Any OS (macOS, Linux, Windows), Python 3 only:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File tools\bundle.ps1
+```bash
+python3 tools/bundle.py
 ```
+
+Windows without Python: `powershell -ExecutionPolicy Bypass -File tools\bundle.ps1` (same output).
 
 With Node (`npm install` first): `npm run build`.
 
-The bundler also bakes `assets/skins/*` into `src/tas/skin-defaults.js`.
+The bundler also bakes `assets/skins/*` into `src/tas/skin-defaults.js`. You only need to build after changing `src/`; the committed `dist/aerox-tas.js` is ready to use.
 
 ## Crashes and logs
 
@@ -90,7 +92,8 @@ src/
 assets/skins/     ball wrap images, baked in at build time
 dist/             aerox-tas.js - the script you inject
 tools/
-  bundle.ps1      Windows bundler (no Node)
+  bundle.py       bundler for any OS (Python 3)
+  bundle.ps1      same bundler for Windows PowerShell
   check.py        static require/export sanity check
   scn.py          reader for the game's .scn level files
   scn_zones.py    bakes src/tas/warpzones-data.js from your copy of the game

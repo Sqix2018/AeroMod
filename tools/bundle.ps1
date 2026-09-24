@@ -1,4 +1,4 @@
-# Dependency-free bundler for machines without Node.
+# Dependency-free bundler for Windows. tools/bundle.py does the same on any OS.
 #
 # Concatenates every CommonJS module under src/ into a single file with a tiny
 # require shim. `npm run build` (frida-compile) consumes the same sources and

@@ -67,11 +67,15 @@ App Store apps are encrypted, and the patch only works on a decrypted copy. This
 
 ### 2. Add AeroMod to it
 
-You need Python 3 on a PC and this repository (download the ZIP from GitHub or `git clone`). From the repository folder:
+You need Python 3 (Windows, macOS or Linux) and this repository (download the ZIP from GitHub or `git clone`). From the repository folder:
 
 ```bash
-python tools/patch_ipa.py path/to/Aerox.ipa
+python3 tools/patch_ipa.py path/to/Aerox.ipa
 ```
+
+On Windows the command is usually `python` instead of `python3`.
+
+**macOS: `CERTIFICATE_VERIFY_FAILED`.** The python.org installer doesn't use the Mac's certificates until you run its `Install Certificates.command` once (in `/Applications/Python 3.x/`), or `python3 -m pip install certifi`. You can also download `frida-gadget-17.18.0-ios-universal.dylib.xz` from [Frida's releases](https://github.com/frida/frida/releases/tag/17.18.0) yourself and add `--gadget path/to/that.xz`.
 
 This writes `Aerox-AeroMod.ipa` next to the original. The first run downloads Frida Gadget 17.18.0 from Frida's GitHub releases. The script:
 
